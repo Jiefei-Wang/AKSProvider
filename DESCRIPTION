@@ -1,0 +1,24 @@
+Package: AKSProvider
+Title: The 'Azure kubernetes' Cloud Provider for the 'DockerParallel' Package
+Version: 1.0.1
+Authors@R: 
+    person(given = "Jiefei",
+           family = "Wang",
+           role = c("aut", "cre"),
+           email = "szwjf08@gmail.com")
+Description: Providing the implementation for the 'Azure kubernetes' cloud provider. 
+    For the general information about 'AKS', please visit 
+    <https://azure.microsoft.com/en-us/services/kubernetes-service/>.
+License: GPL-3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Imports:
+    AzureContainers,
+    methods,
+    utils,
+    readr,
+    yaml,
+    AzureRMR
+Suggests: 
+    testthat

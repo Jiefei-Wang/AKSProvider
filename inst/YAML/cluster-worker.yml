@@ -1,0 +1,23 @@
+apiVersion: apps/v1 
+kind: Deployment 
+metadata:
+  name: r-worker
+spec:
+  selector:
+    matchLabels:
+      app: r-worker
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: r-worker
+    spec:
+      containers:
+      - name: r-worker
+        image: docker.io/dockerparallel/r-base-worker:latest 
+        ports:
+        - containerPort: 6379
+        - containerPort: 22
+        env:
+        - name: workerNum
+          value: "1"

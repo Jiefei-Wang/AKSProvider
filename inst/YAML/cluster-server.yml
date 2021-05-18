@@ -1,0 +1,25 @@
+apiVersion: apps/v1 
+kind: Deployment 
+metadata:
+  name: redis-server
+spec:
+  selector:
+    matchLabels:
+      app: redis-server
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: redis-server
+    spec:
+      containers:
+      - name: redis
+        image: docker.io/dockerparallel/redis-r-server:latest
+        ports:
+        - containerPort: 6379
+        - containerPort: 22
+        env:
+        - name: serverPassword
+          value: "123456"
+        - name: serverPort
+          value: "6379"
