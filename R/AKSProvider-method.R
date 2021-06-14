@@ -13,33 +13,58 @@
 
 AKSProvider <- function(
     k8sCluster = NULL,
-    azureClient = NULL,
-    subscription = NULL,
-    resourceGroup = NULL,
-    aks = NULL,
-    aksName = NULL,
-    resourceGroupName = NULL,
-    subscriptionName = NULL,
-    tenantID = NULL,
-    location = NULL,
-    serviceName = "dockerparallel-redis-service",
-    serverDeploymentName = "dockerparallel-server-deployment",
-    workerDeploymentName = "dockerparallel-worker-deployment"){
+    AKSName = Sys.getenv("AZ_AKS_NAME"),
+    resourceGroupName = Sys.getenv("AZ_RESOURCE_GROUP_NAME"),
+    subscriptionName = Sys.getenv("AZ_SUBSCRIPTION"),
+    tenant = Sys.getenv("AZ_TENANT"),
+    location = Sys.getenv("AZ_LOCATION")){
+
+    if(AKSName == ""){
+        AKSName <- character()
+    }
+    if(resourceGroupName == ""){
+        resourceGroupName <- character()
+    }
+    if(subscriptionName == ""){
+        subscriptionName <- character()
+    }
+    if(tenant == ""){
+        tenant <- character()
+    }
+    if(location == ""){
+        location <- character()
+    }
 
     provider <- .AKSProvider(
-        serviceName = serviceName,
-        serverDeploymentName = serverDeploymentName,
-        workerDeploymentName = workerDeploymentName,
-        azureClient = azureClient,
-        subscription = subscription,
-        resourceGroup = resourceGroup,
-        aks = aks,
+        azureClient = NULL,
+        subscription = NULL,
+        resourceGroup = NULL,
+        AKS = NULL,
         k8sCluster = k8sCluster,
-        aksName = aksName,
+        AKSName = AKSName,
         resourceGroupName = resourceGroupName,
         subscriptionName = subscriptionName,
-        tenantID = tenantID,
+        tenant = tenant,
         location = location,
         initialized = FALSE)
     provider
 }
+
+
+setMethod("show", "AKSProvider", function(object){
+    AKSName <- .getAKSName(object)
+    resourceGroupname <- .getResourceGroupName(object)
+    subscriptionName <- .getSubscriptionName(object)
+    tenant <- .getTenant(object)
+    location <- .getLocation(object)
+    initialized <- .getInitialized(object)
+
+    message("AKS provider reference object")
+    message("  AKS name           : ", AKSName)
+    message("  Resource group name: ", resourceGroupname)
+    message("  Subscription name  : ", subscriptionName)
+    message("  Tenant             : ", tenant)
+    message("  location           : ", location)
+    message("  Initialized        : ", ifelse(initialized, "TRUE", "FALSE"))
+})
+

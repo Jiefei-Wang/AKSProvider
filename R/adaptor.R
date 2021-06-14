@@ -2,14 +2,13 @@
 #'
 #' Initialize the provider
 #'
-#' @inheritParams DockerParallel::initializeProvider
+#' @inheritParams DockerParallel::initializeCloudProvider
 #'
 #' @return No return value
 #' @export
-setMethod("initializeProvider", "AKSProvider", function(provider, cluster, verbose){
+setMethod("initializeCloudProvider", "AKSProvider", function(provider, cluster, verbose){
     if(!provider$initialized){
-        k8sCluster <- getCluster(provider)
-        configService(provider, .getServerPort(cluster))
+        updateService(cluster)
     }
     invisible(NULL)
 })
@@ -18,183 +17,108 @@ setMethod("initializeProvider", "AKSProvider", function(provider, cluster, verbo
 
 #' Run the server container
 #'
-#' Run the server and return the server instance handle.
-#' The function will set the environment variable `ECSFargateCloudConfigInfo` to the container
+#' Run the server container
 #'
 #' @inheritParams DockerParallel::runDockerServer
 #'
-#' @return The server handle in character
+#' @return No return value
 #' @export
 setMethod("runDockerServer", "AKSProvider",
           function(provider, cluster, container, hardware, verbose = 0L){
               verbosePrint(verbose>0, "Deploying server container")
-              updateServer(provider$k8sCluster,
-                           provider$serverDeploymentName,
+              updateServer(cluster,
                            container,
                            hardware)
-              provider$serverDeploymentName
           })
 
+#' Stop the server
+#'
+#' Stop the server
+#'
+#' @inheritParams DockerParallel::stopDockerServer
+#'
+#' @return No return value
+#' @export
+setMethod("stopDockerServer", "AKSProvider",
+          function(provider, cluster, verbose = 0L){
+              deleteDeployments(getK8sCluster(provider),
+                                getServerDeploymentName(cluster))
+          }
+)
 
-#' Run the worker container
+
+setMethod("getServerStatus", "AKSProvider",
+           function(provider, cluster, verbose){
+               status <- getContainerStatus(cluster,
+                                            getServerDeploymentName(cluster))
+               if(status$running == 1){
+                   "running"
+               }else{
+                   "initializing"
+               }
+           })
+
+#' Get the instance public/private IPs
 #'
-#' Run the workers and return a list of worker instance handles.
-#' The function will set the environment variable `ECSFargateCloudJobQueueName`,
-#' `ECSFargateCloudServerIP` and `ECSFargateCloudWorkerNumber` to the container
+#' Get the instance public/private IPs
 #'
-#' @inheritParams DockerParallel::runDockerWorkers
+#' @inheritParams DockerParallel::getDockerServerIp
 #'
-#' @return A list of worker handle in character
+#' @returns
+#' A list with the element name `publicIp`, `publicPort`, `privateIp` and `privatePort`
+#' @export
+setMethod("getDockerServerIp", "AKSProvider",
+          function(provider, cluster, verbose = 0L){
+              repeat{
+                  ip <- getServiceIp(cluster)
+                  if(ip$publicIp!="<pending>"){
+                      break
+                  }
+                  Sys.sleep(0.5)
+              }
+              ip
+          }
+)
+
+#' Run the worker containers
+#'
+#' Run the worker containers
+#'
+#' @inheritParams DockerParallel::setDockerWorkerNumber
+#'
+#' @return No return value
 #' @export
 setMethod("setDockerWorkerNumber", "AKSProvider",
           function(provider, cluster, container, hardware, workerNumber,
                    verbose = 0L){
               verbosePrint(verbose>0, "Adjusting worker container")
-              if(workerNumber==0){
-                  deleteDeployments(provider$k8sCluster,
-                                    provider$workerDeploymentName)
-              }else{
-                  updateWorker(provider$k8sCluster,
-                               provider$workerDeploymentName,
-                               container,
-                               hardware,
-                               workerNumber)
-              }
+              updateWorker(cluster,
+                           container,
+                           hardware,
+                           workerNumber)
           }
 )
+
+
+setMethod("getDockerWorkerNumbers", "AKSProvider",
+          function(provider, cluster, verbose = 0L){
+              status <- getContainerStatus(cluster,
+                                           getWorkerDeploymentName(cluster))
+              status
+          }
+)
+
+#' Cleanup the cluster
 #'
-#' Get the instance public/private IPs
+#' Cleanup the cluster
 #'
-#' Get the instance public/private IPs
-#'
-#' @inheritParams DockerParallel::getDockerInstanceIps
-#'
-#' @returns
-#' A data.frame with publicIp and privateIp columns and each row corresponds to
-#' an element in instanceHandles.
+#' @return No return value
 #' @export
-setMethod("getDockerInstanceIps", "AKSProvider",
-          function(provider, instanceHandles, verbose = 0L){
-              idx <- vapply(instanceHandles,
-                            function(x)x == provider$serverDeploymentName,
-                            logical(1))
-              if(!all(idx)){
-                  stop("Only the server IP is obtainable")
-              }
-              ip <- getServiceIp(provider)
-              ip
-          }
-)
-#'
-#' #' Get the instance status
-#' #'
-#' #' Get the instance status
-#' #'
-#' #' @inheritParams DockerParallel::getDockerInstanceStatus
-#' #'
-#' #' @returns
-#' #' A character vector with each element corresponding to an instance in instanceHandles.
-#' #' Each element must be one of three possible characters "initializing", "running" or "stopped"
-#' #' @export
-#' setMethod("getDockerInstanceStatus", "AKSProvider",
-#'           function(provider, instanceHandles, verbose = 0L){
-#'               uniqueHandles <- unique(instanceHandles)
-#'               taskInfo <- getTaskDetails(provider$clusterName, taskIds = uniqueHandles)
-#'               instanceStatus <- rep("initializing", length(uniqueHandles))
-#'               instanceStatus[taskInfo$status == "RUNNING"] <- "running"
-#'               instanceStatus[taskInfo$status == "STOPPED"] <- "stopped"
-#'               result <- rep("", length(instanceHandles))
-#'               for(i in seq_along(uniqueHandles)){
-#'                   idx <- vapply(instanceHandles, function(x) identical(x, uniqueHandles[[i]]),logical(1))
-#'                   result[idx] <- instanceStatus[i]
-#'               }
-#'               result
-#'           }
-#' )
-#'
-#' Kill the instances
-#'
-#' Kill the instances
-#'
-#' @inheritParams DockerParallel::killDockerInstances
-#'
-#' @return A logical vector indicating whether the killing operation is success for each instance
-#' @export
-setMethod("killDockerInstances", "AKSProvider",
-          function(provider, instanceHandles, verbose = 0L){
-              serverName <- provider$serverDeploymentName
-              if(serverName%in%instanceHandles){
-                  deleteDeployments(provider$k8sCluster, serverName)
-              }
-              rep(TRUE, length(instanceHandles))
-          }
-)
-#'
-#'
-#' #' Whether the cluster is running on the cloud?
-#' #'
-#' #' Whether the cluster is running on the cloud?
-#' #' This function will check the instances in the ECS cluster defined by
-#' #' `provider$clusterName` and find if there is any instance that has the same job queue
-#' #' name as `.getJobQueueName(cluster)`
-#' #'
-#' #' @inheritParams DockerParallel::dockerClusterExists
-#' #'
-#' #' @return A logical value
-#' #' @export
-#' setMethod("dockerClusterExists", "AKSProvider",
-#'           function(provider, cluster, verbose = 0L){
-#'               ## Check if the cluster exists
-#'               clusterList <- listClusters()
-#'               if(!provider$clusterName%in%clusterList){
-#'                   return(FALSE)
-#'               }
-#'
-#'               ## Check if the server exists
-#'               serverHandles <- listRunningServer(cluster)
-#'               serverInfo <- findServerInfo(cluster, serverHandles)
-#'               !is.null(serverInfo)
-#'           }
-#' )
-#'
-#'
-#' #' Reconnect the cluster
-#' #'
-#' #' Reconnect the cluster. This function will check the instances in
-#' #' the ECS cluster defined by `provider$clusterName` and find if there is any
-#' #' instance that has the same job queue name as `.getJobQueueName(cluster)`. If
-#' #' so, the function can reconnect the cluster.
-#' #'
-#' #' @inheritParams DockerParallel::reconnectDockerCluster
-#' #'
-#' #' @return No return value
-#' #' @export
-#' setMethod("reconnectDockerCluster", "AKSProvider",
-#'           function(provider, cluster, verbose = 0L){
-#'               cloudConfig <- .getCloudConfig(cluster)
-#'               serverHandles <- listRunningServer(cluster)
-#'               serverInfo <- findServerInfo(cluster, serverHandles)
-#'               if(!is.null(serverInfo)){
-#'                   ## Set the cloud config
-#'                   serverHandle <- serverInfo$handle
-#'                   cloudConfigValue <- serverInfo$cloudConfigValue
-#'                   lapply(names(cloudConfigValue), function(i)
-#'                       cloudConfig$field(i, cloudConfigValue[[i]]))
-#'
-#'                   ## Set the server runtime
-#'                   serverDetails <-
-#'                       getTaskDetails(provider$clusterName,taskIds = serverHandle, getIP = TRUE)
-#'                   .setServerHandle(cluster, serverHandle)
-#'                   .setServerPublicIp(cluster, serverDetails$publicIp)
-#'                   .setServerPrivateIp(cluster, serverDetails$privateIp)
-#'
-#'                   ## Set the worker runtime
-#'                   workerHandles <- findWorkerHandles(cluster, cloudConfigValue$jobQueueName)
-#'                   .addWorkerHandles(cluster, workerHandles)
-#'                   .setWorkerNumber(cluster, length(workerHandles))
-#'               }
-#'           }
-#' )
-#'
-#'
-#'
+setMethod("cleanupDockerCluster", "AKSProvider",
+          function(provider, cluster, verbose){
+              deleteDeployments(getK8sCluster(provider),
+                                getServerDeploymentName(cluster))
+              deleteDeployments(getK8sCluster(provider),
+                                getWorkerDeploymentName(cluster))
+          })
+

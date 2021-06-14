@@ -1,20 +1,24 @@
 apiVersion: apps/v1 
 kind: Deployment 
 metadata:
-  name: redis-server
+  name: r-server
 spec:
   selector:
     matchLabels:
-      app: redis-server
+      app: r-server
   replicas: 1
   template:
     metadata:
       labels:
-        app: redis-server
+        app: r-server
     spec:
       containers:
       - name: redis
         image: docker.io/dockerparallel/redis-r-server:latest
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
         ports:
         - containerPort: 6379
         - containerPort: 22

@@ -15,6 +15,10 @@ spec:
       containers:
       - name: r-worker
         image: docker.io/dockerparallel/r-base-worker:latest 
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
         ports:
         - containerPort: 6379
         - containerPort: 22

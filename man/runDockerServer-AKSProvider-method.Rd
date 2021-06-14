@@ -18,9 +18,8 @@
 \item{verbose}{Integer. The verbose level, default 1.}
 }
 \value{
-The server handle in character
+No return value
 }
 \description{
-Run the server and return the server instance handle.
-The function will set the environment variable \code{ECSFargateCloudConfigInfo} to the container
+Run the server container
 }

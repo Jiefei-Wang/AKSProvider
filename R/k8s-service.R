@@ -1,37 +1,30 @@
-updateService <- function(k8sCluster, serviceName, port){
+getServiceName <- function(cluster){
+    tolower(paste0(.getJobQueueName(cluster), "-service"))
+}
+
+updateService <- function(cluster){
+    provider <- .getCloudProvider(cluster)
+    k8sCluster <- getK8sCluster(provider)
     ymlPath <- getYmlPath("service")
     yml <- read_yaml(ymlPath)
-    yml$metadata$name <- serviceName
-    yml$spec$ports[[1]]$port <- port
-    yml$spec$ports[[1]]$targetPort <- port
+    yml$metadata$name <- getServiceName(cluster)
+    yml$spec$ports[[1]]$port <- .getServerPort(cluster)
+    yml$spec$ports[[1]]$targetPort <- .getServerPort(cluster)
     k8sCluster$apply(saveYmlFile(yml))
 }
 
-listService <- function(k8sCluster){
-    capture.output(output <- k8sCluster$get("service"),file='NUL')
-    if(output$stdout!=""){
-        read.table(text=output$stdout,header = T)
-    }else{
-        NULL
-    }
-}
 
-configService <- function(provider, port){
-    k8sCluster <- provider$k8sCluster
-    serviceName <- provider$serviceName
-    updateService(k8sCluster, serviceName, port)
-    serviceName
-}
-
-getServiceIp <- function(provider){
-    k8sCluster <- provider$k8sCluster
-    serviceName <- provider$serviceName
-    serviceList <- listService(k8sCluster)
-    idx <- which(serviceList$NAME==serviceName)
-    if(length(idx)==0){
+getServiceIp <- function(cluster){
+    provider <- .getCloudProvider(cluster)
+    k8sCluster <- getK8sCluster(provider)
+    serviceName <- getServiceName(cluster)
+    service <- k8sGetDF(k8sCluster, paste0("service/", serviceName))
+    if(length(service)==0){
         stop("Cannot find the service <", serviceName,">")
     }
-    data.frame(publicIp = serviceList$EXTERNAL.IP[idx],
-               privateIp = serviceList$CLUSTER.IP[idx])
+    data.frame(publicIp = service$EXTERNAL.IP,
+               publicPort = .getServerPort(cluster),
+               privateIp = service$CLUSTER.IP,
+               privatePort = .getServerPort(cluster))
 
 }

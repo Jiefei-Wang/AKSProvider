@@ -24,3 +24,16 @@ verbosePrint<-function(verbose, ...){
     if(verbose)
         message(...)
 }
+
+
+.menu <- function(objects, title){
+    if(length(objects)==1)
+        return(objects)
+    choice <- menu(objects, title=title)
+    stopifnot(choice != 0)
+    objects[choice]
+}
+
+is.empty <- function(x){
+    length(x) == 0
+}

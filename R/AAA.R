@@ -1,5 +1,3 @@
-setClassUnion("CharOrNULL",c("NULL","character"))
-
 #' The Azure kubenetes service provider
 #'
 #' The Azure kubenetes service provider
@@ -7,19 +5,17 @@ setClassUnion("CharOrNULL",c("NULL","character"))
 .AKSProvider <- setRefClass(
     "AKSProvider",
     fields = list(
-        serviceName = "character",
-        serverDeploymentName = "character",
-        workerDeploymentName = "character",
         azureClient = "ANY",
         subscription = "ANY",
         resourceGroup = "ANY",
-        aks = "ANY",
+        AKS = "ANY",
         k8sCluster = "ANY",
-        aksName = "ANY",
-        resourceGroupName = "ANY",
-        subscriptionName = "ANY",
-        tenantID = "ANY",
-        location = "ANY",
+        AKSName = "character",
+        resourceGroupName = "character",
+        subscriptionName = "character",
+        tenant = "character",
+        tenantSelection = "character",
+        location = "character",
         initialized = "logical"
     ),
     contains = "CloudProvider"
