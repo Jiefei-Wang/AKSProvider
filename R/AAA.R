@@ -10,13 +10,16 @@
         resourceGroup = "ANY",
         AKS = "ANY",
         k8sCluster = "ANY",
+        poolName = "character",
+        VMType = "character",
+        maxNodes = "integer",
         AKSName = "character",
         resourceGroupName = "character",
         subscriptionName = "character",
         tenant = "character",
         tenantSelection = "character",
-        location = "character",
-        initialized = "logical"
+        initialized = "logical",
+        autoDelete = "logical"
     ),
     contains = "CloudProvider"
 )

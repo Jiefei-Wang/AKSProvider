@@ -1,18 +1,15 @@
 initializeAzure <- function(provider, verbose = 0L){
-    if(!.getInitialized(provider)){
-        initializeAzureClient(provider)
-        initializeSubscription(provider)
-        verbosePrint(verbose > 0, "Using the subscription <", .getSubscriptionName(provider), ">")
-        initializeResourceGroup(provider)
-        verbosePrint(verbose > 0, "Using the resource group <", .getResourceGroupName(cluster), ">")
-        initializeAKS(provider)
-        verbosePrint(verbose > 0, "Using the AKS cluster <", .getAKSName(provider), ">")
-        .setInitialized(provider, TRUE)
-    }
+    initializeAzureClient(provider)
+    initializeSubscription(provider)
+    verbosePrint(verbose > 0, "Using the subscription <", .getSubscriptionName(provider), ">")
+    initializeResourceGroup(provider)
+    verbosePrint(verbose > 0, "Using the resource group <", .getResourceGroupName(provider), ">")
+    initializeAKS(provider)
+    verbosePrint(verbose > 0, "Using the AKS cluster <", .getAKSName(provider), ">")
 }
 
 getK8sCluster <- function(provider){
-    k8sCluster <-.getK8sCluster(provider)
+    k8sCluster <- .getK8sCluster(provider)
     if(is.empty(k8sCluster)){
         initializeAzure(provider, verbose = 0L)
     }
@@ -32,20 +29,28 @@ initializeAKS <- function(provider){
             ## Selecting the AKS
             if(length(AKSList)!=0){
                 msg <- paste0("Multiple AKS clusters have been found, please select(enter 0 to exit)")
-                AKSName <- .menu(names(AKSList), title=msg)
+                creationOption <- "Create a new AKS cluster"
+                AKSName <- .menu(c(names(AKSList), creationOption), title=msg)
+                if(AKSName == creationOption){
+                    AKSName <-
+                        askAndCreateAKS(provider = provider, ask = FALSE)
+                }
             }else{
                 AKSName <-
-                    askAndCreateAKS(resourceGroup = resourceGroup,
-                                    AKSName = AKSName,
-                                    location = .getLocation(provider))
+                    askAndCreateAKS(provider = provider)
             }
         }
-        AKS <- AKSList[[AKSName]]
-        k8sCluster <- AKS$get_cluster()
-        .setK8sCluster(provider, k8sCluster)
+        AKS <- resourceGroup$get_aks(AKSName)
         .setAKSName(provider, AKSName)
         .setAKS(provider, AKS)
     }
+
+    k8sCluster <- .getK8sCluster(provider)
+    if(is.empty(k8sCluster)){
+        k8sCluster <- AKS$get_cluster()
+        .setK8sCluster(provider, k8sCluster)
+    }
+
     AKS
 }
 
@@ -63,17 +68,19 @@ initializeResourceGroup <- function(provider){
             ## selecting the resource group
             if(length(resourceGroups)!=0){
                 msg <- paste0("Multiple resource groups have been found, please select(enter 0 to exit)")
-                resourceGroupName <- .menu(names(resourceGroups), title=msg)
+                creationOption <- "Create a new resource group"
+                resourceGroupName <- .menu(c(names(resourceGroups), creationOption), title=msg)
+                if(resourceGroupName == creationOption){
+                    resourceGroupName <-
+                        askAndCreateResourceGroup(provider = provider, ask = FALSE)
+                }
 
             }else{
                 resourceGroupName <-
-                    askAndCreateResourceGroup(subscription = subscription,
-                                              resourceGroupName = resourceGroupName,
-                                              location = .getLocation(provider))
+                    askAndCreateResourceGroup(provider = provider)
             }
         }
-
-        resourceGroup <- resourceGroups[[resourceGroupName]]
+        resourceGroup <- subscription$get_resource_group(resourceGroupName)
         .setResourceGroup(provider, resourceGroup)
         .setResourceGroupName(provider, resourceGroupName)
     }

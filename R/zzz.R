@@ -4,4 +4,5 @@
 #' @import yaml
 #' @import jsonlite
 #' @importFrom readr read_file write_file
+#' @importFrom stringr str_order
 NULL

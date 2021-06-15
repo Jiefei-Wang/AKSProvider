@@ -34,10 +34,11 @@ k8sGetDF <- function(k8sCluster, ...){
 listDeployments <- function(k8sCluster){
     k8sGetDF(k8sCluster, "deployment")
 }
-deleteDeployments <- function(k8sCluster, deploymentName){
+deleteDeployments <- function(k8sCluster, deploymentName, verbose = 1L){
     deployments <- listDeployments(k8sCluster)
     if(deploymentName %in% deployments$NAME){
-        k8sCluster$delete("deployment", deploymentName)
+        out <- capture.output(k8sCluster$delete("deployment", deploymentName))
+        verbosePrint(verbose > 1, out)
     }
 }
 listService <- function(k8sCluster){

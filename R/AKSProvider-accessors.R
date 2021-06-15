@@ -25,9 +25,10 @@ setAKSName <- function(x, value){
     x$AKSName <- value
 }
 
-.setLocation <- function(x, value){
-    provider$location <- value
+.setPoolName <- function(x, value){
+    x$poolName <- value
 }
+
 
 .getAKSName <- function(x){
     x$AKSName
@@ -49,8 +50,10 @@ setAKSName <- function(x, value){
     x$tenantSelection
 }
 
-.getLocation <- function(x){
-    provider$location
+
+
+.getPoolName <- function(x){
+    x$poolName
 }
 
 ######################
@@ -110,4 +113,12 @@ setAKSName <- function(x, value){
 
 .setInitialized <- function(x, value){
     x$initialized <- value
+}
+
+.getAutoDelete <- function(x){
+    x$autoDelete
+}
+
+.setAutoDelete <- function(x, value){
+    x$autoDelete <- value
 }

@@ -2,7 +2,7 @@ getServiceName <- function(cluster){
     tolower(paste0(.getJobQueueName(cluster), "-service"))
 }
 
-updateService <- function(cluster){
+updateService <- function(cluster, verbose = 1L){
     provider <- .getCloudProvider(cluster)
     k8sCluster <- getK8sCluster(provider)
     ymlPath <- getYmlPath("service")
@@ -10,7 +10,8 @@ updateService <- function(cluster){
     yml$metadata$name <- getServiceName(cluster)
     yml$spec$ports[[1]]$port <- .getServerPort(cluster)
     yml$spec$ports[[1]]$targetPort <- .getServerPort(cluster)
-    k8sCluster$apply(saveYmlFile(yml))
+    out <- capture.output(k8sCluster$apply(saveYmlFile(yml)))
+    verbosePrint(verbose > 1, out)
 }
 
 

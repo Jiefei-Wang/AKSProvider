@@ -27,8 +27,6 @@ verbosePrint<-function(verbose, ...){
 
 
 .menu <- function(objects, title){
-    if(length(objects)==1)
-        return(objects)
     choice <- menu(objects, title=title)
     stopifnot(choice != 0)
     objects[choice]
@@ -36,4 +34,7 @@ verbosePrint<-function(verbose, ...){
 
 is.empty <- function(x){
     length(x) == 0
+}
+is.char.num <- function(x){
+   suppressWarnings(!is.na(as.numeric(x)))
 }

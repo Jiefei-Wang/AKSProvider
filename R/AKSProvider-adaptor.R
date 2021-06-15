@@ -7,8 +7,10 @@
 #' @return No return value
 #' @export
 setMethod("initializeCloudProvider", "AKSProvider", function(provider, cluster, verbose){
-    if(!provider$initialized){
+    if(!.getInitialized(provider)){
+        initializeAzure(provider, verbose = verbose)
         updateService(cluster)
+        .setInitialized(provider, TRUE)
     }
     invisible(NULL)
 })
@@ -28,7 +30,8 @@ setMethod("runDockerServer", "AKSProvider",
               verbosePrint(verbose>0, "Deploying server container")
               updateServer(cluster,
                            container,
-                           hardware)
+                           hardware,
+                           verbose = verbose)
           })
 
 #' Stop the server
@@ -42,7 +45,8 @@ setMethod("runDockerServer", "AKSProvider",
 setMethod("stopDockerServer", "AKSProvider",
           function(provider, cluster, verbose = 0L){
               deleteDeployments(getK8sCluster(provider),
-                                getServerDeploymentName(cluster))
+                                getServerDeploymentName(cluster),
+                                verbose = verbose)
           }
 )
 
@@ -95,7 +99,8 @@ setMethod("setDockerWorkerNumber", "AKSProvider",
               updateWorker(cluster,
                            container,
                            hardware,
-                           workerNumber)
+                           workerNumber,
+                           verbose = verbose)
           }
 )
 
@@ -116,9 +121,19 @@ setMethod("getDockerWorkerNumbers", "AKSProvider",
 #' @export
 setMethod("cleanupDockerCluster", "AKSProvider",
           function(provider, cluster, verbose){
-              deleteDeployments(getK8sCluster(provider),
-                                getServerDeploymentName(cluster))
-              deleteDeployments(getK8sCluster(provider),
-                                getWorkerDeploymentName(cluster))
+              k8sCluster <- .getK8sCluster(provider)
+              if(!is.null(k8sCluster)){
+                  autoDelete <- .getAutoDelete(provider)
+                  deleteDeployments(k8sCluster,
+                                    getServerDeploymentName(cluster),
+                                    verbose = verbose)
+                  deleteDeployments(k8sCluster,
+                                    getWorkerDeploymentName(cluster),
+                                    verbose = verbose)
+                  if(!is.empty(autoDelete) && autoDelete){
+                      deleteK8sCluster(provider)
+                  }
+              }
+
           })
 

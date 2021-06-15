@@ -10,14 +10,24 @@
 # aks <- resgroup$get_aks("test")
 # cluster <- aks$get_cluster()
 
-
+#' @param k8sCluster The K8S cluster object
+#' @param poolName Character(1), The name of the node pool. This parameter
+#' will only be used when the k8s cluster does not exist and need to be created.
+#' @param AKSName Character(1), The Azure Kubernetes service name
+#' @param resourceGroupName Character(1), the resource group name. If empty, the function
+#' will print a menu and ask you to choose one.
+#' @param subscriptionName Character(1), the subscription name. If empty, the function
+#' will print a menu and ask you to choose one.
+#'
+#'
 AKSProvider <- function(
     k8sCluster = NULL,
+    poolName = "akspool",
     AKSName = Sys.getenv("AZ_AKS_NAME"),
     resourceGroupName = Sys.getenv("AZ_RESOURCE_GROUP_NAME"),
     subscriptionName = Sys.getenv("AZ_SUBSCRIPTION"),
     tenant = Sys.getenv("AZ_TENANT"),
-    location = Sys.getenv("AZ_LOCATION")){
+    autoDelete = NULL){
 
     if(AKSName == ""){
         AKSName <- character()
@@ -31,8 +41,8 @@ AKSProvider <- function(
     if(tenant == ""){
         tenant <- character()
     }
-    if(location == ""){
-        location <- character()
+    if(is.null(autoDelete)){
+        autoDelete <- logical()
     }
 
     provider <- .AKSProvider(
@@ -41,12 +51,13 @@ AKSProvider <- function(
         resourceGroup = NULL,
         AKS = NULL,
         k8sCluster = k8sCluster,
+        poolName = poolName,
         AKSName = AKSName,
         resourceGroupName = resourceGroupName,
         subscriptionName = subscriptionName,
         tenant = tenant,
-        location = location,
-        initialized = FALSE)
+        initialized = FALSE,
+        autoDelete = autoDelete)
     provider
 }
 
@@ -56,15 +67,20 @@ setMethod("show", "AKSProvider", function(object){
     resourceGroupname <- .getResourceGroupName(object)
     subscriptionName <- .getSubscriptionName(object)
     tenant <- .getTenant(object)
-    location <- .getLocation(object)
     initialized <- .getInitialized(object)
 
-    message("AKS provider reference object")
-    message("  AKS name           : ", AKSName)
-    message("  Resource group name: ", resourceGroupname)
-    message("  Subscription name  : ", subscriptionName)
-    message("  Tenant             : ", tenant)
-    message("  location           : ", location)
-    message("  Initialized        : ", ifelse(initialized, "TRUE", "FALSE"))
+    cat("AKS provider reference object\n")
+    cat("  AKS name           : ", AKSName, "\n")
+    cat("  Resource group name: ", resourceGroupname, "\n")
+    cat("  Subscription name  : ", subscriptionName, "\n")
+    cat("  Tenant             : ", tenant, "\n")
+    cat("  Initialized        : ", ifelse(initialized, "TRUE", "FALSE"), "\n")
+
+    k8sCluster <- .getK8sCluster(object)
+    if(!is.null(k8sCluster)){
+        cat("K8s status:\n")
+        out <- capture.output(k8sCluster$get("deployments"))
+        cat(paste0(paste0("  ", out), collapse = "\n"))
+    }
 })
 
