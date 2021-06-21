@@ -1,35 +1,3 @@
----
-title: "vignette"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{vignette}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
----
-
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
-library(AKSProvider)
-
-
-if(FALSE){
-makeReadMe <- function(){
-  library(readr)
-  knitr::knit("vignettes/vignette.Rmd", output = "README.md")
-  fileName <- "README.md"
-  content <- readChar(fileName, file.info(fileName)$size)
-  content <- gsub("---.+?---","",content)
-  content <- gsub("^(\r\n)+","",content)
-  content <- gsub("([a-zA-Z]+)\\.jpg","vignettes/\\1.jpg",content)
-  write_file(content, file="README.md")
-}
-  makeReadMe()
-}
-```
-
 This package is an extension package for the `DockerParallel` package. In this vignette, we will  cover the information about the Azure Kubernetes service(AKS) provider. For more general information, please see the document of `DockerParallel`.
 
 For accessing the Azure cloud, the AKS provider requires a [tenant] to log in to Azure Resource Manager, a [subscription] to determine where the bill should be sent to, a [resource group] to hold related resources for an Azure solution(in our case, the R parallel cluster) and an [Azure Kubernetes service] to run the Kubernetes cluster. 
@@ -47,7 +15,8 @@ Before you can create the provider, you must first create a login cache for the 
 
 # Before you start: Create a login cache
 The provider uses the package `AzureRMR` to authenticate with the Azure cloud. For connecting to Azure, you must first log in to Azure Resource Manager via `AzureRMR::create_azure_login()` to create a login cache. Depending on the function argument, this might open a browser and ask for your account. If you are using a personal account, you have to pass your tenant to the function. For example
-```{r, eval=FALSE}
+
+```r
 AzureRMR::create_azure_login(tenant = "your tenant ID")
 ```
 The above code will help you to log in to a specific tenant using your personal account. Once you have successfully logged in, the cache will be automatically created and you can find your login information via `AzureRMR::list_azure_logins()`
@@ -55,7 +24,8 @@ The above code will help you to log in to a specific tenant using your personal 
 
 # Create the provider
 The simplest provider can be made by passing your tenant ID that is used in `AzureRMR::create_azure_login()` to `AKSProvider()`. For example
-```{r, eval=FALSE}
+
+```r
 provider <- AKSProvider(tenant = "your tenant ID")
 ```
 If you have multiple logins for a tenant, the provider will print a menu and ask you to choose a login. If you plan to use it in a non-interactive environment, please provides your login number or the input MD5 hash of the token to the argument `tenantSelection` in `AKSProvider` to avoid the selection. The login number or MD5 hash can be found in `AzureRMR::list_azure_logins()`.
@@ -67,7 +37,8 @@ For avoiding the unexpected cost for the Kubernetes service, the Kubernetes serv
 
 # Extra functions in the provider
 The provider provides two extra functions to manage the Kubernetes cluster, they are `deleteK8sCluster` and `k8sGet`. The former one can delete the Kubernetes cluster and the latter one is similar to `kubectl get` in the command line tool. Note that you cannot directly call them from the provider object and they are only available inside the `DockerCluster` object. For example
-```{r, eval=FALSE}
+
+```r
 library(DockerParallel)
 ## Create the provider and the cluster object
 provider <- AKSProvider(tenant = "your tenant ID")
