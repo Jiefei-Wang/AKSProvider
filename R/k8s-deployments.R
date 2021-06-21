@@ -5,7 +5,7 @@ getWorkerDeploymentName <- function(cluster){
     tolower(paste0(.getJobQueueName(cluster), "-worker-deployment"))
 }
 
-updateServer <- function(cluster, serverContainer,hardware, verbose = 1L){
+updateServer <- function(cluster, serverContainer, hardware, verbose = 1L){
     provider <- .getCloudProvider(cluster)
     k8sCluster <- getK8sCluster(provider)
     ymlPath <- getYmlPath("cluster-server")

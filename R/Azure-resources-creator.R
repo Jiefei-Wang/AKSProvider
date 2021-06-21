@@ -63,7 +63,7 @@ askAndCreateAKS <- function(provider, ask = TRUE){
     minMem <- 4096
     repeat{
         message("Name of the virtual machine(default: Standard_DS2_v2)?:")
-        message("Hint: ")
+        message("Hints: ")
         message("1. You can type <cpu> or <cpu-memory> to view the available VMs, e.g. 4-4096 means to match VMs which has exact 4 cores and over 4096 MB memory.")
         message("2. Please make sure the selected VM has enough disk space for running the container.")
         VMType <- readline()
@@ -153,13 +153,14 @@ askAndCreateResourceGroup <- function(provider, ask = TRUE){
         stopifnot(answer == 1)
     }
     if(is.empty(resourceGroupName)){
-        resourceGroupName <- readline("Name of the resouce group?(default: DockerParallel): ")
+        message("Name of the resouce group?(default: DockerParallel): ")
+        resourceGroupName <- readline()
         if(resourceGroupName == ""){
             resourceGroupName <- "DockerParallel"
         }
     }
     location <- askForLocation(provider)
-    resourceGroup <- subscription$create_resource_group(name = name,
+    resourceGroup <- subscription$create_resource_group(name = resourceGroupName,
                                                         location = location)
     .setResourceGroup(provider, resourceGroup)
     .setResourceGroupName(provider, resourceGroupName)

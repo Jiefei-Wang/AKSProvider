@@ -8,7 +8,10 @@
 #' @export
 setMethod("initializeCloudProvider", "AKSProvider", function(provider, cluster, verbose){
     if(!.getInitialized(provider)){
-        initializeAzure(provider, verbose = verbose)
+        k8sCluster <- .getK8sCluster(provider)
+        if(is.empty(k8sCluster)){
+            initializeAzure(provider, verbose = verbose)
+        }
         updateService(cluster)
         .setInitialized(provider, TRUE)
     }
@@ -19,7 +22,8 @@ setMethod("initializeCloudProvider", "AKSProvider", function(provider, cluster, 
 
 #' Run the server container
 #'
-#' Run the server container
+#' Run the server container. This will set the environment variable `AKSClusterStaticData` to
+#' the server container
 #'
 #' @inheritParams DockerParallel::runDockerServer
 #'
@@ -27,6 +31,19 @@ setMethod("initializeCloudProvider", "AKSProvider", function(provider, cluster, 
 #' @export
 setMethod("runDockerServer", "AKSProvider",
           function(provider, cluster, container, hardware, verbose = 0L){
+              existsServer <- dockerClusterExists(provider = provider,
+                                                  cluster = cluster,
+                                                  verbose = verbose)
+              if(existsServer){
+                  stop("Cannot create a cluster with the same job queue name <",
+                       .getJobQueueName(cluster),
+                       ">")
+              }
+
+              container <- container$copy()
+              container$environment["AKSClusterStaticData"] <- encodeClusterStaticData(cluster)
+
+
               verbosePrint(verbose>0, "Deploying server container")
               updateServer(cluster,
                            container,
@@ -52,15 +69,15 @@ setMethod("stopDockerServer", "AKSProvider",
 
 
 setMethod("getServerStatus", "AKSProvider",
-           function(provider, cluster, verbose){
-               status <- getContainerStatus(cluster,
-                                            getServerDeploymentName(cluster))
-               if(status$running == 1){
-                   "running"
-               }else{
-                   "initializing"
-               }
-           })
+          function(provider, cluster, verbose){
+              status <- getContainerStatus(cluster,
+                                           getServerDeploymentName(cluster))
+              if(status$running == 1){
+                  "running"
+              }else{
+                  "initializing"
+              }
+          })
 
 #' Get the instance public/private IPs
 #'
@@ -104,9 +121,19 @@ setMethod("setDockerWorkerNumber", "AKSProvider",
           }
 )
 
-
+#' Get the worker number
+#'
+#' Get the worker number
+#'
+#' @inheritParams DockerParallel::getDockerWorkerNumbers
+#'
+#' @return A list with running and initializing worker numbers
+#' @export
 setMethod("getDockerWorkerNumbers", "AKSProvider",
           function(provider, cluster, verbose = 0L){
+              if(!.getInitialized(provider)){
+                  return(list(initializing = 0L, running = 0L))
+              }
               status <- getContainerStatus(cluster,
                                            getWorkerDeploymentName(cluster))
               status
@@ -117,6 +144,7 @@ setMethod("getDockerWorkerNumbers", "AKSProvider",
 #'
 #' Cleanup the cluster
 #'
+#' @inheritParams DockerParallel::cleanupDockerCluster
 #' @return No return value
 #' @export
 setMethod("cleanupDockerCluster", "AKSProvider",
@@ -131,9 +159,76 @@ setMethod("cleanupDockerCluster", "AKSProvider",
                                     getWorkerDeploymentName(cluster),
                                     verbose = verbose)
                   if(!is.empty(autoDelete) && autoDelete){
-                      deleteK8sCluster(provider)
+                      deleteAKSCluster(.getAKS(provider))
                   }
+                  .setK8sCluster(provider, NULL)
+                  .setAKS(provider, NULL)
               }
-
           })
+
+
+
+#' Whether the cluster exists
+#'
+#' This function checks whether the cluster with the same job queue name
+#' exists on the cloud.
+#'
+#' @inheritParams DockerParallel::dockerClusterExists
+#' @return logical(1)
+#' @export
+setMethod("dockerClusterExists", "AKSProvider", function(provider, cluster, verbose){
+    k8sCluster <- getK8sCluster(provider)
+    deployments <- getAllDeployments(k8sCluster)
+    serverDeploymentName <- getServerDeploymentName(cluster)
+    serverDeploymentName %in% deployments
+})
+
+#' Reconnect to the cluster
+#'
+#' Reconnect to the cluster with the same job queue name.
+#'
+#' @inheritParams DockerParallel::dockerClusterExists
+#' @return No return value
+#' @export
+setMethod("reconnectDockerCluster", "AKSProvider", function(provider, cluster, verbose){
+    k8sCluster <- getK8sCluster(provider)
+
+    ## Recover the cluster data from the server environment
+    serverDeploymentName <- getServerDeploymentName(cluster)
+    json <- k8sGetJson(k8sCluster, paste0("deployment ",serverDeploymentName),  options = "-o json")
+    jsonEnv <- json$spec$template$spec$containers$env[[1]]
+    idx <- which(jsonEnv$name == "AKSClusterStaticData")
+    staticData <- decodeClusterStaticData(jsonEnv$value[idx])
+    setDockerStaticData(cluster, staticData)
+})
+
+#' Get the extra function defined for the AKSProvider
+#'
+#' Get the extra function defined for the AKSProvider
+#'
+#' @inheritParams DockerParallel::getExportedNames
+#' @return A character vector
+#' @export
+setMethod("getExportedNames", "AKSProvider", function(x){
+    c("deleteK8sCluster", "k8sGet")
+})
+
+#' Get the extra function defined for the AKSProvider
+#'
+#' Get the extra function defined for the AKSProvider
+#'
+#' @inheritParams DockerParallel::getExportedObject
+#' @return A function
+#' @export
+setMethod("getExportedObject", "AKSProvider", function(x, name){
+    if(name == "deleteK8sCluster"){
+        return(deleteK8sCluster)
+    }
+    if(name == "k8sGet"){
+        return(K8sGet)
+    }
+    stop("The name <", name,"> is not defined for the AKSProvider")
+})
+
+
 

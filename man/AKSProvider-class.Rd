@@ -4,8 +4,9 @@
 \name{AKSProvider-class}
 \alias{AKSProvider-class}
 \alias{.AKSProvider}
-\title{The Azure kubenetes service provider}
+\title{The Azure Kubenetes service provider}
 \description{
-The Azure kubenetes service provider
+The Azure Kubenetes service provider for the \code{DockerParallel} package. Please
+call \code{AKSProvider()} to create the provider.
 }
 

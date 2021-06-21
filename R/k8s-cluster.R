@@ -1,5 +1,4 @@
-deleteK8sCluster <- function(provider, verbose = 1){
-    aks <- .getAKS(provider)
-    out <- capture.output(aks$delete(confirm = FALSE, wait = FALSE))
+deleteAKSCluster <- function(AKS, verbose = 1){
+    out <- capture.output(AKS$delete(confirm = FALSE, wait = FALSE))
     verbosePrint(verbose>0, out)
 }

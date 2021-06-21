@@ -19,9 +19,16 @@ getServiceIp <- function(cluster){
     provider <- .getCloudProvider(cluster)
     k8sCluster <- getK8sCluster(provider)
     serviceName <- getServiceName(cluster)
-    service <- k8sGetDF(k8sCluster, paste0("service/", serviceName))
-    if(length(service)==0){
-        stop("Cannot find the service <", serviceName,">")
+    ## Sometimes we should be patient...
+    startTime <- Sys.time()
+    repeat{
+        service <- k8sGetDF(k8sCluster, paste0("service/", serviceName))
+        if(length(service)!=0){
+            break
+        }
+        if(difftime(Sys.time(), startTime, units = "sec") > 10){
+            stop("Cannot find the service <", serviceName,">")
+        }
     }
     data.frame(publicIp = service$EXTERNAL.IP,
                publicPort = .getServerPort(cluster),

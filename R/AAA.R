@@ -1,7 +1,9 @@
-#' The Azure kubenetes service provider
+#' The Azure Kubenetes service provider
 #'
-#' The Azure kubenetes service provider
+#' The Azure Kubenetes service provider for the `DockerParallel` package. Please
+#' call `AKSProvider()` to create the provider.
 #'
+#' @exportClass AKSProvider
 .AKSProvider <- setRefClass(
     "AKSProvider",
     fields = list(

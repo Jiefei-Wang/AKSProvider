@@ -25,4 +25,9 @@ Imports:
     jsonlite,
     stringr
 Suggests: 
+    rmarkdown,
+    knitr,
     testthat
+SystemRequirements: 
+    kubectl
+VignetteBuilder: knitr

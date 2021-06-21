@@ -1,3 +1,12 @@
+getK8sCluster <- function(provider){
+    k8sCluster <- .getK8sCluster(provider)
+    if(is.empty(k8sCluster)){
+        initializeAzure(provider, verbose = 0L)
+        k8sCluster <- .getK8sCluster(provider)
+    }
+    k8sCluster
+}
+
 initializeAzure <- function(provider, verbose = 0L){
     initializeAzureClient(provider)
     initializeSubscription(provider)
@@ -8,13 +17,6 @@ initializeAzure <- function(provider, verbose = 0L){
     verbosePrint(verbose > 0, "Using the AKS cluster <", .getAKSName(provider), ">")
 }
 
-getK8sCluster <- function(provider){
-    k8sCluster <- .getK8sCluster(provider)
-    if(is.empty(k8sCluster)){
-        initializeAzure(provider, verbose = 0L)
-    }
-    k8sCluster
-}
 
 initializeAKS <- function(provider){
     AKS <- .getAKS(provider)
@@ -74,7 +76,6 @@ initializeResourceGroup <- function(provider){
                     resourceGroupName <-
                         askAndCreateResourceGroup(provider = provider, ask = FALSE)
                 }
-
             }else{
                 resourceGroupName <-
                     askAndCreateResourceGroup(provider = provider)
@@ -121,7 +122,7 @@ initializeAzureClient <- function(provider){
         tenantSelection <- .getTenantSelection(provider)
         args <- list(tenant = tenant, selection = tenantSelection)
         args <- args[!vapply(args, is.empty, logical(1))]
-        azureClient <- do.call(get_azure_login, args = args)
+        azureClient <- do.call(AzureRMR::get_azure_login, args = args)
         .setAzureClient(provider, azureClient)
     }
     client

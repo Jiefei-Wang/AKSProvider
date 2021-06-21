@@ -38,3 +38,13 @@ is.empty <- function(x){
 is.char.num <- function(x){
    suppressWarnings(!is.na(as.numeric(x)))
 }
+
+
+encodeClusterStaticData <- function(cluster){
+    jsonlite::base64_enc(serialize(getDockerStaticData(cluster),NULL))
+}
+
+decodeClusterStaticData <- function(value){
+    unserialize(jsonlite::base64_dec(value))
+}
+

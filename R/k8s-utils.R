@@ -49,6 +49,9 @@ listReplicaSets <- function(k8sCluster){
 }
 
 
-
+getAllDeployments <- function(k8sCluster){
+    deployments <- capture.output(k8sCluster$get("deployment -o custom-columns=NAME:.metadata.name"))
+    deployments[-1]
+}
 
 
