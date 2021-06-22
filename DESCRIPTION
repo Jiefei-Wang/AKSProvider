@@ -26,8 +26,11 @@ Imports:
     stringr
 Suggests: 
     rmarkdown,
+    markdown,
     knitr,
     testthat
 SystemRequirements: 
     kubectl
 VignetteBuilder: knitr
+URL: https://github.com/Jiefei-Wang/AKSProvider
+BugReports: https://github.com/Jiefei-Wang/AKSProvider/issues
